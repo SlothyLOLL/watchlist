@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Purple Hour Watchlist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: two-pane app — catalog with genre chips on the left, shared tracker rail (Watching / Finished) on the right; stacks on phones. */
+:root {
+  --bg: #f4f0fb; --surface: #ffffff; --surface-2: #ece5f8; --line: #dcd1ef;
+  --fg: #1e1530; --muted: #6b5d85; --accent: #7c3aed; --accent-ink: #ffffff;
+  --accent-soft: #e6dafc; --glow: #c084fc; --done: #0f8a6a; --done-soft: #d7f2e9; --no: #b4235a; --no-soft: #fbdde8;
+  --f-display: "Dela Gothic One", "Arial Black", system-ui, sans-serif;
+  --f-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --r: 12px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #120c1f; --surface: #1c1430; --surface-2: #251a3e; --line: #362756;
+  --fg: #efe8fb; --muted: #a596c2; --accent: #a771ff; --accent-ink: #160c28;
+  --accent-soft: #33215a; --glow: #d8b4fe; --done: #4fd1a5; --done-soft: #12352c; --no: #ff7aa8; --no-soft: #3d1527;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #120c1f; --surface: #1c1430; --surface-2: #251a3e; --line: #362756;
+  --fg: #efe8fb; --muted: #a596c2; --accent: #a771ff; --accent-ink: #160c28;
+  --accent-soft: #33215a; --glow: #d8b4fe; --done: #4fd1a5; --done-soft: #12352c; --no: #ff7aa8; --no-soft: #3d1527;
+  color-scheme: dark }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { color-scheme: light; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px;
+  padding-bottom: 16px; border-bottom: 2px solid var(--accent); }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(26px, 4.4vw, 42px); line-height: 1.05; margin: 0; text-wrap: balance; letter-spacing: .01em; }
+h1 span { color: var(--accent); }
+.kana { font-family: var(--f-mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.sync { font-family: var(--f-mono); font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.dot.live { background: var(--done); box-shadow: 0 0 0 3px var(--done-soft); }
+
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: start; }
+@media (max-width: 900px) { .app { grid-template-columns: 1fr; } .rail { order: -1; } }
+
+/* filters */
+.filters { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.label { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+input[type="search"], input[type="text"], select {
+  font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; min-width: 0; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+#q { flex: 1 1 220px; }
+.chip { font: 600 13px var(--f-body); border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+  padding: 6px 12px; border-radius: 999px; cursor: pointer; transition: background .15s, border-color .15s; }
+.chip:hover { border-color: var(--accent); }
+.chip[data-state="in"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chip[data-state="out"] { background: var(--no-soft); color: var(--no); border-color: var(--no); text-decoration: line-through; }
+.hint { font-size: 13px; color: var(--muted); }
+.linkbtn { font: inherit; font-size: 13px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
+
+/* catalog */
+.count { font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.card h3 { margin: 0; font-size: 16px; line-height: 1.25; text-wrap: balance; }
+.meta { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.blurb { font-size: 13.5px; color: var(--muted); margin: 0; flex: 1; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.kind { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.btn { font: 600 13px var(--f-body); border-radius: 9px; padding: 8px 12px; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+.btn:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.done { background: var(--done); border-color: var(--done); color: var(--bg); }
+.btn:disabled { opacity: .55; cursor: default; filter: none; }
+.state { font: 600 12.5px var(--f-body); padding: 7px 10px; border-radius: 9px; text-align: center; }
+.state.w { background: var(--accent-soft); color: var(--accent); }
+.state.f { background: var(--done-soft); color: var(--done); }
+.empty-cat { padding: 32px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--r); }
+
+/* rail */
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 900px) { .rail { position: static; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.panel.watching { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.panel h2 { font-family: var(--f-display); font-weight: 400; font-size: 19px; margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.panel h2 .n { font-family: var(--f-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+.item { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 10px; background: var(--surface-2); min-width: 0; }
+.item .t { flex: 1; min-width: 0; }
+.item .t b { display: block; font-size: 14px; overflow-wrap: anywhere; }
+.item .t small { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.x { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 4px 6px; border-radius: 6px; }
+.x:hover { color: var(--no); background: var(--no-soft); }
+.item.finished .t b { color: var(--muted); }
+.check { color: var(--done); font-weight: 700; }
+.blank { font-size: 13.5px; color: var(--muted); padding: 10px; border: 1px dashed var(--line); border-radius: 10px; }
+.add { display: flex; gap: 8px; }
+.add input { flex: 1; }
+.note { font-size: 12.5px; color: var(--muted); }
+.err { font-size: 13px; color: var(--no); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="kana">今夜なに見る? · what are we watching tonight</div>
+      <h1>Purple Hour <span>Watchlist</span></h1>
+    </div>
+    <div class="sync"><span class="dot" id="dot"></span><span id="syncText">Connecting…</span></div>
+  </header>
+
+  <div class="app">
+    <main class="filters" aria-label="Recommendations">
+      <div class="row">
+        <input type="search" id="q" placeholder="Search titles…" aria-label="Search titles">
+        <select id="kind" aria-label="Type">
+          <option value="all">Anime + Shows</option>
+          <option value="Anime">Anime only</option>
+          <option value="Show">Shows only</option>
+        </select>
+        <select id="hideTracked" aria-label="Tracked titles">
+          <option value="show">Show all titles</option>
+          <option value="hide">Hide ones we're tracking</option>
+        </select>
+      </div>
+      <div class="row" id="chips"><span class="label">Genres</span></div>
+      <div class="row hint">Tap a genre once to show only that genre, twice to filter it out, again to reset. <button class="linkbtn" id="reset" type="button">Clear filters</button></div>
+      <div class="row" style="justify-content:space-between"><span class="count" id="count"></span></div>
+      <div class="grid" id="grid"></div>
+    </main>
+
+    <aside class="rail" aria-label="Our lists">
+      <section class="panel watching">
+        <h2>Currently Watching <span class="n" id="nW">0</span></h2>
+        <ul class="list" id="watching"></ul>
+        <form class="add" id="addForm">
+          <input type="text" id="addTitle" placeholder="Add something not on the list" aria-label="Add a title" maxlength="80">
+          <button class="btn" type="submit">Add</button>
+        </form>
+        <div class="err" id="err" hidden></div>
+      </section>
+      <section class="panel">
+        <h2>Finished <span class="n" id="nF">0</span></h2>
+        <ul class="list" id="finished"></ul>
+      </section>
+      <p class="note">Both of you see the same lists. Changes show up for the other person live.</p>
+    </aside>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Firebase web config (public by design).
+const firebaseConfig = {
+  apiKey: "AIzaSyAluSUwoTjKuLBAopG5xDo2KRFS6Fglxu8",
+  authDomain: "watchlist-78b3c.firebaseapp.com",
+  projectId: "watchlist-78b3c",
+  storageBucket: "watchlist-78b3c.firebasestorage.app",
+  messagingSenderId: "1087581315759",
+  appId: "1:1087581315759:web:6661cf72d76a411c266a5a"
+};
+
+const CATALOG = [
+  ["Frieren: Beyond Journey's End","Anime",2023,"28 eps",["Fantasy","Adventure","Drama"],"An elf mage outlives her hero party and retraces their journey to understand the people she lost."],
+  ["Fullmetal Alchemist: Brotherhood","Anime",2009,"64 eps",["Action","Adventure","Fantasy"],"Two brothers pay a terrible price for alchemy and hunt for a way to get their bodies back."],
+  ["Steins;Gate","Anime",2011,"24 eps",["Sci-Fi","Psychological","Mystery"],"A self-proclaimed mad scientist accidentally invents a microwave that texts the past."],
+  ["Attack on Titan","Anime",2013,"89 eps",["Action","Drama","Mystery"],"Humanity hides behind walls from giants, until the walls fall and the truth starts coming out."],
+  ["Spy x Family","Anime",2022,"37 eps",["Comedy","Action","Slice of Life"],"A spy, an assassin and a telepathic kid fake a family, and none of them know the others' secrets."],
+  ["Jujutsu Kaisen","Anime",2020,"47 eps",["Action","Fantasy","Horror"],"A student swallows a cursed finger and joins a school of sorcerers fighting curses."],
+  ["Demon Slayer","Anime",2019,"63 eps",["Action","Fantasy","Adventure"],"A boy hunts demons to cure his sister. Some of the best fight animation around."],
+  ["Mob Psycho 100","Anime",2016,"37 eps",["Comedy","Action","Slice of Life"],"An overpowered psychic middle-schooler just wants to be normal and join the body-building club."],
+  ["Haikyu!!","Anime",2014,"85 eps",["Sports","Comedy","Drama"],"A short kid with a huge jump joins a fallen high-school volleyball team. Pure hype."],
+  ["Blue Lock","Anime",2022,"38 eps",["Sports","Psychological","Action"],"Japan locks 300 strikers in a facility to forge the most selfish forward in the world."],
+  ["Your Lie in April","Anime",2014,"22 eps",["Romance","Drama","Music"],"A piano prodigy who stopped hearing his own playing meets a violinist who drags him back to music."],
+  ["Kaguya-sama: Love Is War","Anime",2019,"37 eps",["Romance","Comedy"],"Two student council geniuses refuse to confess first and turn flirting into chess."],
+  ["Horimiya","Anime",2021,"13 eps",["Romance","Slice of Life","Comedy"],"Two classmates find out each other's off-school sides. Sweet and low stress."],
+  ["Death Note","Anime",2006,"37 eps",["Psychological","Mystery","Horror"],"A student finds a notebook that kills anyone whose name is written in it. Cat and mouse with a genius detective."],
+  ["Monster","Anime",2004,"74 eps",["Psychological","Mystery","Drama"],"A surgeon saves a boy's life and later learns he grew up into a serial killer."],
+  ["Cowboy Bebop","Anime",1998,"26 eps",["Sci-Fi","Action","Drama"],"Bounty hunters drift through space with jazz, noir and a lot of unpaid bills."],
+  ["Cyberpunk: Edgerunners","Anime",2022,"10 eps",["Sci-Fi","Action","Drama"],"A street kid in Night City gets chrome and chases a dream. Short and hits hard."],
+  ["Made in Abyss","Anime",2017,"25 eps",["Adventure","Fantasy","Horror"],"Cute art, brutal story: a girl descends into a giant pit to find her mother."],
+  ["One Punch Man","Anime",2015,"24 eps",["Action","Comedy"],"A hero beats everyone with one punch and is bored out of his mind about it."],
+  ["Chainsaw Man","Anime",2022,"12 eps",["Action","Horror","Comedy"],"A broke kid fuses with his chainsaw devil dog and becomes a government devil hunter."],
+  ["Vinland Saga","Anime",2019,"48 eps",["Action","Adventure","Drama"],"A Viking revenge story that turns into a story about what it means to be a real warrior."],
+  ["Bocchi the Rock!","Anime",2022,"12 eps",["Comedy","Slice of Life","Music"],"A painfully shy guitarist joins a band. Very funny, very relatable."],
+  ["The Apothecary Diaries","Anime",2023,"48 eps",["Mystery","Drama","Romance"],"A sharp-tongued apothecary solves poisonings and palace intrigue in the imperial court."],
+  ["Dandadan","Anime",2024,"24 eps",["Action","Comedy","Sci-Fi"],"A girl who believes in ghosts and a boy who believes in aliens are both right."],
+  ["Solo Leveling","Anime",2024,"25 eps",["Action","Fantasy"],"The weakest hunter gets a system that lets him level up, and keeps going."],
+  ["Violet Evergarden","Anime",2018,"13 eps",["Drama","Fantasy","Romance"],"A former child soldier writes letters for others to learn what 'I love you' means. Bring tissues."],
+  ["Arcane","Show",2021,"18 eps",["Action","Fantasy","Drama"],"Two sisters end up on opposite sides of a war between a rich city and its undercity."],
+  ["Avatar: The Last Airbender","Show",2005,"61 eps",["Adventure","Fantasy","Comedy"],"The last airbender has to master all four elements and stop a war. A classic for a reason."],
+  ["Stranger Things","Show",2016,"42 eps",["Sci-Fi","Horror","Mystery"],"Kids in an '80s town face a monster from another dimension and a secret lab."],
+  ["The Last of Us","Show",2023,"16 eps",["Drama","Horror","Adventure"],"A smuggler escorts a teenage girl across a collapsed America."],
+  ["Wednesday","Show",2022,"16 eps",["Mystery","Comedy","Horror"],"Wednesday Addams solves a murder mystery at a school for outcasts."],
+  ["Severance","Show",2022,"19 eps",["Sci-Fi","Psychological","Mystery"],"Office workers split their memories between work and home, and start asking what they do all day."],
+  ["The Bear","Show",2022,"38 eps",["Drama","Comedy"],"A fine-dining chef comes home to run his late brother's chaotic sandwich shop."],
+  ["Brooklyn Nine-Nine","Show",2013,"153 eps",["Comedy"],"A goofy detective and his precinct. Easy to binge, easy to rewatch."],
+  ["Squid Game","Show",2021,"22 eps",["Psychological","Drama","Action"],"People in debt compete in deadly children's games for a huge cash prize."],
+  ["One Piece (live action)","Show",2023,"8 eps",["Adventure","Action","Comedy"],"Luffy sets sail to become King of the Pirates. A surprisingly good adaptation."],
+  ["Blue Eye Samurai","Show",2023,"8 eps",["Action","Drama","Adventure"],"A mixed-race swordswoman in Edo-period Japan hunts the four men who might be her father."],
+  ["Dark","Show",2017,"26 eps",["Sci-Fi","Mystery","Psychological"],"A missing child pulls four families into a time-travel mystery. Take notes."],
+];
+const SHOWS = CATALOG.map(([title, kind, year, eps, genres, blurb]) => ({ id: slug(title), title, kind, year, eps, genres, blurb }));
+const GENRES = [...new Set(SHOWS.flatMap(s => s.genres))].sort();
+function slug(t) { return t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "x"; }
+
+const $ = id => document.getElementById(id);
+const chipState = {}; // genre -> "", "in", "out"
+let tracked = new Map(); // id -> {title, status, ...}
+let db = null, canWrite = true;
+
+// chips
+for (const g of GENRES) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip"; b.textContent = g; b.dataset.state = ""; b.id = "chip-" + slug(g);
+  b.addEventListener("click", () => {
+    const next = { "": "in", in: "out", out: "" }[b.dataset.state];
+    b.dataset.state = next; chipState[g] = next;
+    b.setAttribute("aria-label", g + (next === "in" ? " (showing only)" : next === "out" ? " (filtered out)" : ""));
+    renderCatalog();
+  });
+  $("chips").appendChild(b);
+}
+$("reset").addEventListener("click", () => {
+  for (const b of document.querySelectorAll(".chip")) b.dataset.state = "";
+  for (const g in chipState) chipState[g] = "";
+  $("q").value = ""; $("kind").value = "all"; $("hideTracked").value = "show"; renderCatalog();
+});
+["q", "kind", "hideTracked"].forEach(id => $(id).addEventListener("input", renderCatalog));
+
+function renderCatalog() {
+  const q = $("q").value.trim().toLowerCase(), kind = $("kind").value, hide = $("hideTracked").value === "hide";
+  const inG = GENRES.filter(g => chipState[g] === "in"), outG = GENRES.filter(g => chipState[g] === "out");
+  const list = SHOWS.filter(s =>
+    (kind === "all" || s.kind === kind) &&
+    (!q || s.title.toLowerCase().includes(q)) &&
+    (!inG.length || s.genres.some(g => inG.includes(g))) &&
+    !s.genres.some(g => outG.includes(g)) &&
+    !(hide && tracked.has(s.id)));
+  $("count").textContent = list.length + " of " + SHOWS.length + " titles";
+  const grid = $("grid"); grid.replaceChildren();
+  if (!list.length) { const d = document.createElement("div"); d.className = "empty-cat"; d.textContent = "Nothing matches these filters. Try clearing a genre."; grid.appendChild(d); return; }
+  for (const s of list) {
+    const c = document.createElement("article"); c.className = "card";
+    c.innerHTML = `<div class="kind"></div><h3></h3><div class="meta"></div><p class="blurb"></p><div class="tags"></div><div class="act"></div>`;
+    c.querySelector(".kind").textContent = s.kind;
+    c.querySelector("h3").textContent = s.title;
+    c.querySelector(".meta").textContent = s.year + " · " + s.eps;
+    c.querySelector(".blurb").textContent = s.blurb;
+    const tags = c.querySelector(".tags");
+    for (const g of s.genres) { const t = document.createElement("span"); t.className = "tag"; t.textContent = g; tags.appendChild(t); }
+    const act = c.querySelector(".act"), t = tracked.get(s.id);
+    if (t) { const d = document.createElement("div"); d.className = "state " + (t.status === "finished" ? "f" : "w"); d.textContent = t.status === "finished" ? "✓ Finished" : "▶ Currently watching"; act.appendChild(d); }
+    else { const b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.style.width = "100%"; b.textContent = "+ Start watching"; b.disabled = !db || !canWrite; b.addEventListener("click", () => startWatching(s)); act.appendChild(b); }
+    grid.appendChild(c);
+  }
+}
+
+function fmt(ts) { if (!ts) return ""; try { return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }); } catch { return ""; } }
+
+function renderRail() {
+  const all = [...tracked.entries()].map(([id, v]) => ({ id, ...v }));
+  const w = all.filter(x => x.status === "watching").sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  const f = all.filter(x => x.status === "finished").sort((a, b) => (b.finishedAt || 0) - (a.finishedAt || 0));
+  $("nW").textContent = w.length; $("nF").textContent = f.length;
+  fill($("watching"), w, "Nothing yet. Pick something from the list and hit Start watching.", item => {
+    const b = document.createElement("button"); b.className = "btn done"; b.type = "button"; b.textContent = "Finish"; b.disabled = !canWrite;
+    b.addEventListener("click", () => write(item.id, { ...strip(item), status: "finished", finishedAt: Date.now() }));
+    return [b];
+  }, x => "started " + fmt(x.addedAt));
+  fill($("finished"), f, "Finished shows land here.", item => {
+    const b = document.createElement("button"); b.className = "btn ghost"; b.type = "button"; b.textContent = "Rewatch"; b.disabled = !canWrite;
+    b.addEventListener("click", () => write(item.id, { ...strip(item), status: "watching", addedAt: Date.now(), finishedAt: null }));
+    return [b];
+  }, x => "✓ finished " + fmt(x.finishedAt), true);
+}
+function strip(x) { const { id, ...rest } = x; return rest; }
+function fill(ul, items, emptyText, actions, sub, finished) {
+  ul.replaceChildren();
+  if (!items.length) { const li = document.createElement("li"); li.className = "blank"; li.textContent = emptyText; ul.appendChild(li); return; }
+  for (const it of items) {
+    const li = document.createElement("li"); li.className = "item" + (finished ? " finished" : "");
+    const t = document.createElement("div"); t.className = "t";
+    const b = document.createElement("b"); b.textContent = it.title;
+    const s = document.createElement("small"); s.textContent = sub(it);
+    t.append(b, s); li.appendChild(t);
+    actions(it).forEach(a => li.appendChild(a));
+    const x = document.createElement("button"); x.className = "x"; x.type = "button"; x.textContent = "×"; x.title = "Remove"; x.setAttribute("aria-label", "Remove " + it.title); x.disabled = !canWrite;
+    x.addEventListener("click", () => remove(it.id)); li.appendChild(x);
+    ul.appendChild(li);
+  }
+}
+
+function showErr(msg) { const e = $("err"); e.textContent = msg; e.hidden = !msg; }
+async function write(id, data) {
+  if (!db) return;
+  try { await setDoc(doc(db, "tracker", id), data); showErr(""); }
+  catch (e) { showErr(e && e.code === "permission-denied" ? "The database rejected that. Check the rules from SETUP.md." : "Couldn't save that. Check your connection and try again."); }
+}
+async function remove(id) {
+  if (!db) return;
+  try { await deleteDoc(doc(db, "tracker", id)); } catch { showErr("Couldn't remove that. Try again."); }
+}
+function startWatching(s) { write(s.id, { title: s.title, status: "watching", addedAt: Date.now(), finishedAt: null }); }
+
+$("addForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const title = $("addTitle").value.trim(); if (!title) return;
+  const known = SHOWS.find(s => s.title.toLowerCase() === title.toLowerCase());
+  const id = known ? known.id : "custom-" + slug(title);
+  write(id, { title: known ? known.title : title, status: "watching", addedAt: Date.now(), finishedAt: null });
+  $("addTitle").value = "";
+});
+
+function renderAll() { renderCatalog(); renderRail(); }
+renderAll();
+
+const setSync = (txt, live) => { $("syncText").textContent = txt; $("dot").classList.toggle("live", !!live); };
+const app = initializeApp(firebaseConfig);
+db = getFirestore(app);
+setSync("Loading…"); renderAll();
+onSnapshot(collection(db, "tracker"), snap => {
+  tracked = new Map(snap.docs.map(d => [d.id, d.data()]));
+  setSync(snap.metadata.fromCache ? "Offline · showing saved copy" : "Synced · live", !snap.metadata.fromCache);
+  renderAll();
+}, () => setSync("Can't load the lists. Check the setup steps."));
+</script>
+</body>
+</html>
