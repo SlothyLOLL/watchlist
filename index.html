@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Purple Hour Watchlist</title>
+<title>Welcome to My Shows</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
@@ -66,6 +66,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
 .count { font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.card .act { margin-top: auto; }
 .card h3 { margin: 0; font-size: 16px; line-height: 1.25; text-wrap: balance; }
 .meta { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .blurb { font-size: 13.5px; color: var(--muted); margin: 0; flex: 1; }
@@ -110,10 +111,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
 
 <div class="wrap">
   <header>
-    <div>
-      <div class="kana">今夜なに見る? · what are we watching tonight</div>
-      <h1>Purple Hour <span>Watchlist</span></h1>
-    </div>
+    <h1>WELCOME TO MY <span>SHOWS</span></h1>
     <div class="sync"><span class="dot" id="dot"></span><span id="syncText">Connecting…</span></div>
   </header>
 
@@ -132,7 +130,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
         </select>
       </div>
       <div class="row" id="chips"><span class="label">Genres</span></div>
-      <div class="row hint">Tap a genre once to show only that genre, twice to filter it out, again to reset. <button class="linkbtn" id="reset" type="button">Clear filters</button></div>
+      <div class="row hint"><button class="linkbtn" id="reset" type="button">Clear filters</button></div>
       <div class="row" style="justify-content:space-between"><span class="count" id="count"></span></div>
       <div class="grid" id="grid"></div>
     </main>
@@ -151,7 +149,6 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
         <h2>Finished <span class="n" id="nF">0</span></h2>
         <ul class="list" id="finished"></ul>
       </section>
-      <p class="note">Both of you see the same lists. Changes show up for the other person live.</p>
     </aside>
   </div>
 </div>
@@ -171,46 +168,49 @@ const firebaseConfig = {
 };
 
 const CATALOG = [
-  ["Frieren: Beyond Journey's End","Anime",2023,"28 eps",["Fantasy","Adventure","Drama"],"An elf mage outlives her hero party and retraces their journey to understand the people she lost."],
-  ["Fullmetal Alchemist: Brotherhood","Anime",2009,"64 eps",["Action","Adventure","Fantasy"],"Two brothers pay a terrible price for alchemy and hunt for a way to get their bodies back."],
-  ["Steins;Gate","Anime",2011,"24 eps",["Sci-Fi","Psychological","Mystery"],"A self-proclaimed mad scientist accidentally invents a microwave that texts the past."],
-  ["Attack on Titan","Anime",2013,"89 eps",["Action","Drama","Mystery"],"Humanity hides behind walls from giants, until the walls fall and the truth starts coming out."],
-  ["Spy x Family","Anime",2022,"37 eps",["Comedy","Action","Slice of Life"],"A spy, an assassin and a telepathic kid fake a family, and none of them know the others' secrets."],
-  ["Jujutsu Kaisen","Anime",2020,"47 eps",["Action","Fantasy","Horror"],"A student swallows a cursed finger and joins a school of sorcerers fighting curses."],
-  ["Demon Slayer","Anime",2019,"63 eps",["Action","Fantasy","Adventure"],"A boy hunts demons to cure his sister. Some of the best fight animation around."],
-  ["Mob Psycho 100","Anime",2016,"37 eps",["Comedy","Action","Slice of Life"],"An overpowered psychic middle-schooler just wants to be normal and join the body-building club."],
-  ["Haikyu!!","Anime",2014,"85 eps",["Sports","Comedy","Drama"],"A short kid with a huge jump joins a fallen high-school volleyball team. Pure hype."],
-  ["Blue Lock","Anime",2022,"38 eps",["Sports","Psychological","Action"],"Japan locks 300 strikers in a facility to forge the most selfish forward in the world."],
-  ["Your Lie in April","Anime",2014,"22 eps",["Romance","Drama","Music"],"A piano prodigy who stopped hearing his own playing meets a violinist who drags him back to music."],
-  ["Kaguya-sama: Love Is War","Anime",2019,"37 eps",["Romance","Comedy"],"Two student council geniuses refuse to confess first and turn flirting into chess."],
-  ["Horimiya","Anime",2021,"13 eps",["Romance","Slice of Life","Comedy"],"Two classmates find out each other's off-school sides. Sweet and low stress."],
-  ["Death Note","Anime",2006,"37 eps",["Psychological","Mystery","Horror"],"A student finds a notebook that kills anyone whose name is written in it. Cat and mouse with a genius detective."],
-  ["Monster","Anime",2004,"74 eps",["Psychological","Mystery","Drama"],"A surgeon saves a boy's life and later learns he grew up into a serial killer."],
-  ["Cowboy Bebop","Anime",1998,"26 eps",["Sci-Fi","Action","Drama"],"Bounty hunters drift through space with jazz, noir and a lot of unpaid bills."],
-  ["Cyberpunk: Edgerunners","Anime",2022,"10 eps",["Sci-Fi","Action","Drama"],"A street kid in Night City gets chrome and chases a dream. Short and hits hard."],
-  ["Made in Abyss","Anime",2017,"25 eps",["Adventure","Fantasy","Horror"],"Cute art, brutal story: a girl descends into a giant pit to find her mother."],
-  ["One Punch Man","Anime",2015,"24 eps",["Action","Comedy"],"A hero beats everyone with one punch and is bored out of his mind about it."],
-  ["Chainsaw Man","Anime",2022,"12 eps",["Action","Horror","Comedy"],"A broke kid fuses with his chainsaw devil dog and becomes a government devil hunter."],
-  ["Vinland Saga","Anime",2019,"48 eps",["Action","Adventure","Drama"],"A Viking revenge story that turns into a story about what it means to be a real warrior."],
-  ["Bocchi the Rock!","Anime",2022,"12 eps",["Comedy","Slice of Life","Music"],"A painfully shy guitarist joins a band. Very funny, very relatable."],
-  ["The Apothecary Diaries","Anime",2023,"48 eps",["Mystery","Drama","Romance"],"A sharp-tongued apothecary solves poisonings and palace intrigue in the imperial court."],
-  ["Dandadan","Anime",2024,"24 eps",["Action","Comedy","Sci-Fi"],"A girl who believes in ghosts and a boy who believes in aliens are both right."],
-  ["Solo Leveling","Anime",2024,"25 eps",["Action","Fantasy"],"The weakest hunter gets a system that lets him level up, and keeps going."],
-  ["Violet Evergarden","Anime",2018,"13 eps",["Drama","Fantasy","Romance"],"A former child soldier writes letters for others to learn what 'I love you' means. Bring tissues."],
-  ["Arcane","Show",2021,"18 eps",["Action","Fantasy","Drama"],"Two sisters end up on opposite sides of a war between a rich city and its undercity."],
-  ["Avatar: The Last Airbender","Show",2005,"61 eps",["Adventure","Fantasy","Comedy"],"The last airbender has to master all four elements and stop a war. A classic for a reason."],
-  ["Stranger Things","Show",2016,"42 eps",["Sci-Fi","Horror","Mystery"],"Kids in an '80s town face a monster from another dimension and a secret lab."],
-  ["The Last of Us","Show",2023,"16 eps",["Drama","Horror","Adventure"],"A smuggler escorts a teenage girl across a collapsed America."],
-  ["Wednesday","Show",2022,"16 eps",["Mystery","Comedy","Horror"],"Wednesday Addams solves a murder mystery at a school for outcasts."],
-  ["Severance","Show",2022,"19 eps",["Sci-Fi","Psychological","Mystery"],"Office workers split their memories between work and home, and start asking what they do all day."],
-  ["The Bear","Show",2022,"38 eps",["Drama","Comedy"],"A fine-dining chef comes home to run his late brother's chaotic sandwich shop."],
-  ["Brooklyn Nine-Nine","Show",2013,"153 eps",["Comedy"],"A goofy detective and his precinct. Easy to binge, easy to rewatch."],
-  ["Squid Game","Show",2021,"22 eps",["Psychological","Drama","Action"],"People in debt compete in deadly children's games for a huge cash prize."],
-  ["One Piece (live action)","Show",2023,"8 eps",["Adventure","Action","Comedy"],"Luffy sets sail to become King of the Pirates. A surprisingly good adaptation."],
-  ["Blue Eye Samurai","Show",2023,"8 eps",["Action","Drama","Adventure"],"A mixed-race swordswoman in Edo-period Japan hunts the four men who might be her father."],
-  ["Dark","Show",2017,"26 eps",["Sci-Fi","Mystery","Psychological"],"A missing child pulls four families into a time-travel mystery. Take notes."],
+  ["Attack on Titan","Anime",2013,["Action","Drama","Mystery"]],
+  ["Spy x Family","Anime",2022,["Comedy","Action","Slice of Life"]],
+  ["Jujutsu Kaisen","Anime",2020,["Action","Fantasy","Horror"]],
+  ["Naruto","Anime",2002,["Action","Adventure","Fantasy"]],
+  ["Demon Slayer","Anime",2019,["Action","Fantasy","Adventure"]],
+  ["Mob Psycho 100","Anime",2016,["Comedy","Action"]],
+  ["Haikyu!!","Anime",2014,["Sports","Comedy","Drama"]],
+  ["Horimiya","Anime",2021,["Romance","Slice of Life","Comedy"]],
+  ["Cyberpunk: Edgerunners","Anime",2022,["Sci-Fi","Action","Drama"]],
+  ["Chainsaw Man","Anime",2022,["Action","Horror","Comedy"]],
+  ["Vinland Saga","Anime",2019,["Action","Adventure","Drama"]],
+  ["Dandadan","Anime",2024,["Action","Comedy","Sci-Fi"]],
+  ["Solo Leveling","Anime",2024,["Action","Fantasy"]],
+  ["Dr. Stone","Anime",2019,["Sci-Fi","Adventure","Comedy"]],
+  ["Black Clover","Anime",2017,["Action","Fantasy","Adventure"]],
+  ["Sakamoto Days","Anime",2025,["Action","Comedy"]],
+  ["Hunter x Hunter","Anime",2011,["Action","Adventure","Fantasy"]],
+  ["Hell's Paradise","Anime",2023,["Action","Fantasy","Horror"]],
+  ["Mashle","Anime",2023,["Comedy","Action","Fantasy"]],
+  ["Shangri-La Frontier","Anime",2023,["Action","Adventure","Sci-Fi"]],
+  ["Blue Box","Anime",2024,["Romance","Sports","Slice of Life"]],
+  ["My Dress-Up Darling","Anime",2022,["Romance","Comedy","Slice of Life"]],
+  ["Frieren: Beyond Journey's End","Anime",2023,["Fantasy","Adventure","Drama"]],
+  ["You and I Are Polar Opposites","Anime",2026,["Romance","Comedy","Slice of Life"]],
+  ["Fairy Tail","Anime",2009,["Action","Adventure","Fantasy"]],
+  ["86 Eighty-Six","Anime",2021,["Sci-Fi","Action","Drama"]],
+  ["Lord of Mysteries","Anime",2025,["Mystery","Fantasy","Horror"]],
+  ["Link Click","Anime",2021,["Mystery","Drama","Sci-Fi"]],
+  ["The Last of Us","Show",2023,["Drama","Horror","Adventure"]],
+  ["Stranger Things","Show",2016,["Sci-Fi","Horror","Mystery"]],
+  ["Arcane","Show",2021,["Action","Fantasy","Drama"]],
+  ["Avatar: The Last Airbender","Show",2005,["Adventure","Fantasy","Comedy"]],
+  ["Severance","Show",2022,["Sci-Fi","Psychological","Mystery"]],
+  ["Friends","Show",1994,["Comedy","Romance"]],
+  ["How I Met Your Mother","Show",2005,["Comedy","Romance"]],
+  ["Criminal Minds","Show",2005,["Crime","Drama","Mystery"]],
+  ["Brooklyn Nine-Nine","Show",2013,["Comedy","Crime"]],
+  ["Dark","Show",2017,["Sci-Fi","Mystery","Psychological"]],
+  ["South Park","Show",1997,["Comedy"]],
+  ["Obsession","Show",2023,["Drama","Psychological","Romance"]],
+  ["From","Show",2022,["Horror","Mystery","Drama"]],
 ];
-const SHOWS = CATALOG.map(([title, kind, year, eps, genres, blurb]) => ({ id: slug(title), title, kind, year, eps, genres, blurb }));
+const SHOWS = CATALOG.map(([title, kind, year, genres]) => ({ id: slug(title), title, kind, year, genres }));
 const GENRES = [...new Set(SHOWS.flatMap(s => s.genres))].sort();
 function slug(t) { return t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "x"; }
 
@@ -252,11 +252,10 @@ function renderCatalog() {
   if (!list.length) { const d = document.createElement("div"); d.className = "empty-cat"; d.textContent = "Nothing matches these filters. Try clearing a genre."; grid.appendChild(d); return; }
   for (const s of list) {
     const c = document.createElement("article"); c.className = "card";
-    c.innerHTML = `<div class="kind"></div><h3></h3><div class="meta"></div><p class="blurb"></p><div class="tags"></div><div class="act"></div>`;
+    c.innerHTML = `<div class="kind"></div><h3></h3><div class="meta"></div><div class="tags"></div><div class="act"></div>`;
     c.querySelector(".kind").textContent = s.kind;
     c.querySelector("h3").textContent = s.title;
-    c.querySelector(".meta").textContent = s.year + " · " + s.eps;
-    c.querySelector(".blurb").textContent = s.blurb;
+    c.querySelector(".meta").textContent = s.year;
     const tags = c.querySelector(".tags");
     for (const g of s.genres) { const t = document.createElement("span"); t.className = "tag"; t.textContent = g; tags.appendChild(t); }
     const act = c.querySelector(".act"), t = tracked.get(s.id);
